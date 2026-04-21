@@ -1,0 +1,11 @@
+{
+  "name": "stakeholder-updater",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"client,server\" -c \"cyan,yellow\" \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+    "setup": "npm install && npm install --prefix client && npm install --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,0 +1,44 @@
+# Node.js dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-specific files
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Runtime data — contain real email addresses
+server/subscribers.json
+server/test-recipient.json
+
+# Build output
+dist/
+build/
+
+# Vite cache
+.vite
+
+# Test coverage
+coverage/
+
+# Miscellaneous
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# IDE-specific files
+.idea/
+.vscode/
+*.code-workspace
