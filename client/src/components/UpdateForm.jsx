@@ -22,6 +22,28 @@ function TrendIcon({ trend, size = 16 }) {
   )
 }
 
+function hexToRgb(hex) {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ]
+}
+
+function lerpHex(colorA, colorB, t) {
+  const [ar, ag, ab] = hexToRgb(colorA)
+  const [br, bg, bb] = hexToRgb(colorB)
+  const r = Math.round(ar + (br - ar) * t).toString(16).padStart(2, '0')
+  const g = Math.round(ag + (bg - ag) * t).toString(16).padStart(2, '0')
+  const b = Math.round(ab + (bb - ab) * t).toString(16).padStart(2, '0')
+  return `#${r}${g}${b}`
+}
+
+function moraleColor(val) {
+  if (val <= 3) return lerpHex('#E07060', '#F0A040', (val - 1) / 2)
+  return lerpHex('#F0A040', '#3EC86A', (val - 3) / 2)
+}
+
 function weekLabel() {
   return `Week of ${new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric',
@@ -100,7 +122,10 @@ export default function UpdateForm() {
   const handleSend     = () => send(false)
   const handleSendTest = () => send(true)
 
-  const moraleInfo = MORALE[morale]
+  const moraleInfo  = MORALE[morale]
+  const mc          = moraleColor(morale)
+  const mp          = `${((morale - 1) / 4) * 100}%`
+  const moraleLevel = morale <= 2 ? 'low' : morale >= 4 ? 'high' : 'mid'
   const anySending = sending || sendingTest
   const canSend     = !anySending && subCount > 0
   const canSendTest = !anySending && hasTestRecipient
@@ -120,113 +145,142 @@ export default function UpdateForm() {
         <h2 className="week-label">{label}</h2>
       </div>
 
-      {/* Key Metrics */}
-      <div className="form-section">
-        <label className="form-section-label">Key Metrics</label>
-        <div className="metrics-rows">
-          {metrics.map(m => (
-            <div key={m.id} className="metric-row">
-              <input
+      <div className="form-sections">
+
+        {/* Key Metrics */}
+        <div className="form-section">
+          <span className="form-section-label">Key Metrics</span>
+          <div className="metrics-rows">
+            {metrics.map(m => (
+              <div key={m.id} className="metric-row">
+                <div className="float-field">
+                  <input
+                    className="field"
+                    placeholder=" "
+                    value={m.label}
+                    onChange={e => updateMetric(m.id, 'label', e.target.value)}
+                  />
+                  <span className="float-label">Metric</span>
+                </div>
+                <div className="float-field">
+                  <input
+                    className="field"
+                    placeholder=" "
+                    value={m.value}
+                    onChange={e => updateMetric(m.id, 'value', e.target.value)}
+                  />
+                  <span className="float-label">Value</span>
+                </div>
+                <button
+                  className="metric-remove"
+                  onClick={() => setMetrics(prev => prev.filter(r => r.id !== m.id))}
+                  title="Remove"
+                >×</button>
+              </div>
+            ))}
+          </div>
+          <button className="btn-add-metric" onClick={() => setMetrics(p => [...p, newRow()])}>
+            + Add metric
+          </button>
+        </div>
+
+        {/* Progress & Blockers — Split */}
+        <div className="form-section">
+          <div className="split-grid">
+            <div className="split-col">
+              <label className="form-section-label">The Wins</label>
+              <textarea
                 className="field"
-                placeholder="Metric name"
-                value={m.label}
-                onChange={e => updateMetric(m.id, 'label', e.target.value)}
+                placeholder="What shipped or moved forward this week?"
+                value={progress}
+                onChange={e => setProgress(e.target.value)}
               />
-              <input
-                className="field"
-                placeholder="Value"
-                value={m.value}
-                onChange={e => updateMetric(m.id, 'value', e.target.value)}
-              />
-              <button
-                className="metric-remove"
-                onClick={() => setMetrics(prev => prev.filter(r => r.id !== m.id))}
-                title="Remove"
-              >
-                ×
-              </button>
             </div>
-          ))}
+            <div className="split-divider" />
+            <div className="split-col">
+              <label className="form-section-label">The Friction</label>
+              <textarea
+                className="field"
+                placeholder="What slowed you down or remains unresolved?"
+                value={blockers}
+                onChange={e => setBlockers(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
-        <button className="btn-add-metric" onClick={() => setMetrics(p => [...p, newRow()])}>
-          + Add metric
-        </button>
-      </div>
 
-      {/* Progress */}
-      <div className="form-section">
-        <label className="form-section-label">Progress &amp; Wins</label>
-        <textarea
-          className="field"
-          placeholder="What shipped or moved forward this week? (one item per line → becomes a list in the email)"
-          value={progress}
-          onChange={e => setProgress(e.target.value)}
-        />
-      </div>
-
-      {/* Blockers */}
-      <div className="form-section">
-        <label className="form-section-label">Blockers &amp; Challenges</label>
-        <textarea
-          className="field"
-          placeholder="What slowed you down or remains unresolved? (one item per line)"
-          value={blockers}
-          onChange={e => setBlockers(e.target.value)}
-        />
-      </div>
-
-      {/* Focus */}
-      <div className="form-section">
-        <label className="form-section-label">Focus for Next Week</label>
-        <textarea
-          className="field"
-          placeholder="What's the top priority heading into next week?"
-          value={focus}
-          onChange={e => setFocus(e.target.value)}
-        />
-      </div>
-
-      {/* Morale */}
-      <div className="form-section">
-        <label className="form-section-label">Morale</label>
-        <div className="morale-row">
-          {[1, 2, 3, 4, 5].map(n => (
-            <button
-              key={n}
-              className={`morale-btn morale-btn--${MORALE[n].trend}${morale === n ? ' active' : ''}`}
-              onClick={() => setMorale(n)}
-            >
-              <span className="morale-icon"><TrendIcon trend={MORALE[n].trend} size={17} /></span>
-              <span>{n}</span>
-            </button>
-          ))}
+        {/* Focus */}
+        <div className="form-section">
+          <label className="form-section-label">Focus for Next Week</label>
+          <textarea
+            className="field"
+            placeholder="What's the top priority heading into next week?"
+            value={focus}
+            onChange={e => setFocus(e.target.value)}
+          />
         </div>
-        <p className="morale-status">
-          <span className={`morale-status-icon morale-status-icon--${moraleInfo.trend}`}>
-            <TrendIcon trend={moraleInfo.trend} size={14} />
-          </span>
-          <strong>{moraleInfo.label}</strong>
-        </p>
-      </div>
 
-      {/* The Ask */}
-      <div className="form-section">
-        <label className="form-section-label">The Ask</label>
-        <textarea
-          className="field"
-          placeholder="What do you need from your stakeholders right now?"
-          value={ask}
-          onChange={e => setAsk(e.target.value)}
-        />
+        {/* Morale */}
+        <div
+          className={`form-section morale-card morale-card--${moraleLevel}`}
+          style={{ '--mc': mc, '--mp': mp }}
+        >
+          <span className="form-section-label">Morale</span>
+          <div className="morale-slider-wrap">
+            <input
+              type="range"
+              className="morale-slider"
+              min="1" max="5" step="1"
+              value={morale}
+              onChange={e => setMorale(Number(e.target.value))}
+            />
+            <div className="morale-endpoints">
+              <span className="morale-endpoint-icon" style={{ color: '#E07060' }}>
+                <TrendIcon trend="down" size={13} />
+              </span>
+              <span className="morale-endpoint-icon" style={{ color: '#F0A040' }}>
+                <TrendIcon trend="flat" size={13} />
+              </span>
+              <span className="morale-endpoint-icon" style={{ color: '#3EC86A' }}>
+                <TrendIcon trend="up" size={13} />
+              </span>
+            </div>
+          </div>
+          <p className="morale-status" style={{ color: mc }}>
+            <span className="morale-status-icon">
+              <TrendIcon trend={moraleInfo.trend} size={14} />
+            </span>
+            <strong style={{ color: mc }}>{moraleInfo.label}</strong>
+          </p>
+        </div>
+
+        {/* The Ask */}
+        <div className="form-section">
+          <label className="form-section-label">The Ask</label>
+          <div className="ask-wrapper">
+            <textarea
+              className="field"
+              placeholder="What do you need from your stakeholders right now?"
+              value={ask}
+              onChange={e => setAsk(e.target.value)}
+            />
+          </div>
+        </div>
+
       </div>
 
       {/* Send */}
       <div className="send-bar">
         <p className="send-meta">
-          {subCount === null ? 'Loading...' : subCount === 0 ? 'No subscribers yet' : `${subCount} subscriber${subCount !== 1 ? 's' : ''}`}
+          {subCount === null ? 'Loading…' : subCount === 0 ? 'No subscribers yet' : `${subCount} subscriber${subCount !== 1 ? 's' : ''}`}
         </p>
         <div className="send-actions">
-          <button className={testBtnClass} onClick={handleSendTest} disabled={!canSendTest} title={!hasTestRecipient ? 'Set a test recipient in the Subscribers tab' : ''}>
+          <button
+            className={testBtnClass}
+            onClick={handleSendTest}
+            disabled={!canSendTest}
+            title={!hasTestRecipient ? 'Set a test recipient in the Subscribers tab' : ''}
+          >
             {sendingTest ? 'Sending…' : 'Send Test'}
           </button>
           <button className={btnClass} onClick={handleSend} disabled={!canSend}>
